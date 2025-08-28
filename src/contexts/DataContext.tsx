@@ -12,6 +12,7 @@ export interface Listing {
   sellerUsername: string;
   createdAt: string;
   isAvailable: boolean;
+  sku?: string;
 }
 
 export interface Transaction {

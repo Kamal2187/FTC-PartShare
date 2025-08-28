@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Bot, User, Mail, Lock, AlertCircle } from 'lucide-react';
 
@@ -12,6 +13,7 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login, register } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +26,8 @@ export default function AuthPage() {
         success = await login(formData.email, formData.password);
         if (!success) {
           setError('Invalid email or password');
+        } else {
+          navigate('/dashboard');
         }
       } else {
         if (!formData.username.trim()) {
@@ -34,6 +38,8 @@ export default function AuthPage() {
         success = await register(formData.username, formData.email, formData.password);
         if (!success) {
           setError('Username or email already exists');
+        } else {
+          navigate('/dashboard');
         }
       }
     } catch (err) {
@@ -55,11 +61,16 @@ export default function AuthPage() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-              <Bot className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">FTC Parts Exchange</h1>
-            <p className="text-gray-600 mt-2">Trade robotics parts with credits</p>
+            <button
+              onClick={() => navigate('/')}
+              className="inline-block hover:opacity-80 transition-opacity"
+            >
+              <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+                <Bot className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900">FTC Parts Exchange</h1>
+              <p className="text-gray-600 mt-2">Trade robotics parts with credits</p>
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

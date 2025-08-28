@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { X, Upload, Package } from 'lucide-react';
+import { useParts } from '../../contexts/PartsContext';
+import { X, Upload, Package, Search } from 'lucide-react';
 
 interface CreateListingModalProps {
   onClose: () => void;
@@ -28,14 +29,30 @@ const sampleImages = [
 
 export default function CreateListingModal({ onClose }: CreateListingModalProps) {
   const { addListing } = useData();
+  const { searchParts, getPartBySKU } = useParts();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
     category: '',
-    image: sampleImages[0]
+    image: sampleImages[0],
+    sku: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      const results = searchParts(searchQuery);
+      setSearchResults(results);
+      setShowSearchResults(true);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  }, [searchQuery, searchParts]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +72,8 @@ export default function CreateListingModal({ onClose }: CreateListingModalProps)
         price: parseInt(formData.price),
         category: formData.category,
         image: formData.image,
-        isAvailable: true
+        isAvailable: true,
+        sku: formData.sku
       });
       onClose();
     }
@@ -66,6 +84,31 @@ export default function CreateListingModal({ onClose }: CreateListingModalProps)
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handlePartSelect = (part: any) => {
+    setFormData(prev => ({
+      ...prev,
+      title: part.name,
+      description: part.description,
+      category: part.category,
+      image: part.imageUrl,
+      sku: part.sku
+    }));
+    setSearchQuery('');
+    setShowSearchResults(false);
+  };
+
+  const handleSkuSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sku = e.target.value;
+    setFormData(prev => ({ ...prev, sku }));
+    
+    if (sku.length >= 4) {
+      const part = getPartBySKU(sku);
+      if (part) {
+        handlePartSelect(part);
+      }
     }
   };
 
@@ -83,6 +126,55 @@ export default function CreateListingModal({ onClose }: CreateListingModalProps)
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                Search GoBilda Parts
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Search by name or description..."
+                />
+                <Search className="w-5 h-5 text-gray-400 absolute right-3 top-2.5" />
+              </div>
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  {searchResults.map((part) => (
+                    <button
+                      key={part.id}
+                      type="button"
+                      onClick={() => handlePartSelect(part)}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
+                    >
+                      <div className="font-medium text-gray-900">{part.name}</div>
+                      <div className="text-sm text-gray-600">{part.sku}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="sku" className="block text-sm font-medium text-gray-700 mb-2">
+                GoBilda SKU
+              </label>
+              <input
+                type="text"
+                id="sku"
+                name="sku"
+                value={formData.sku}
+                onChange={handleSkuSearch}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter GoBilda SKU (e.g., 1614-0016-0006)"
+              />
+            </div>
+          </div>
+
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
               Title *
@@ -168,7 +260,7 @@ export default function CreateListingModal({ onClose }: CreateListingModalProps)
               Select Image
             </label>
             <div className="grid grid-cols-3 gap-3">
-              {sampleImages.map((image, index) => (
+              {[formData.image, ...sampleImages.filter(img => img !== formData.image)].map((image, index) => (
                 <button
                   key={index}
                   type="button"
@@ -195,10 +287,10 @@ export default function CreateListingModal({ onClose }: CreateListingModalProps)
               <div>
                 <h3 className="font-medium text-blue-900">Listing Tips</h3>
                 <ul className="text-sm text-blue-800 mt-1 space-y-1">
-                  <li>• Be specific about compatibility and condition</li>
-                  <li>• Include all relevant details in the description</li>
+                  <li>• Search for GoBilda parts to auto-fill details</li>
+                  <li>• Enter the SKU directly if you know it</li>
+                  <li>• Be specific about condition and any modifications</li>
                   <li>• Price competitively based on similar listings</li>
-                  <li>• Respond promptly to buyer messages</li>
                 </ul>
               </div>
             </div>
